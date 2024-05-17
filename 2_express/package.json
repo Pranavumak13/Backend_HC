@@ -1,0 +1,14 @@
+{
+  "name": "express_application",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "author": "Pranav Umak",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
