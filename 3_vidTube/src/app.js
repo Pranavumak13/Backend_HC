@@ -21,4 +21,12 @@ app.use(express.urlencoded({ //encoding the url for eg %20 in the url
 }))
 app.use(express.static("public")) //all media files here
 
+// import routes
+import healthcheckRouter from "./routes/healthcheck.routes.js"
+
+// routes
+// another middleware to control the router
+app.use("/api/v1/healthcheck", healthcheckRouter)
+
+
 export {app}
