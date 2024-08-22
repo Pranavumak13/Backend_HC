@@ -1,5 +1,6 @@
 import express from "express"
 import cors from "cors"
+import cookieParser from "cookie-parser"
 
 const app = express()
 
@@ -20,6 +21,8 @@ app.use(express.urlencoded({ //encoding the url for eg %20 in the url
     limit:"16kb"
 }))
 app.use(express.static("public")) //all media files here
+app.use(cookieParser()) // all cookies are stored here
+
 
 // import routes
 import healthcheckRouter from "./routes/healthcheck.routes.js"
