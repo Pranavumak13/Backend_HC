@@ -4,6 +4,25 @@ import {User} from '../models/users.model.js';
 import {uploadOnCloudinary, deleteFromCloudinary} from '../utils/cloudinary.js';
 import {ApiResponse} from '../utils/ApiResponse.js';
 
+const generateAccessAndRefreshToken = async userId => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(489, 'No user found');
+  }
+
+  try {
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    user.refreshTokens = refreshToken;
+    await user.save({validateBeforeSave: false});
+    return {accessToken, refreshToken};
+  } catch (error) {
+    throw new ApiError(490, 'Something went wrong while generating the access or refresh token');
+  }
+};
+
 const registerUser = asyncHandler(async (req, res) => {
   const {username, email, fullname, password} = req.body;
 
@@ -42,7 +61,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // console.log('Uploaded Avatar', avatar);
   } catch (error) {
     console.log('Error uploading avatar', error);
-    throw new ApiError(486, 'Failed to upload avatar');
+    throw new ApiError(487, 'Failed to upload avatar');
   }
   let coverImage;
   try {
@@ -50,7 +69,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // console.log('Uploaded CoverImage', coverImage);
   } catch (error) {
     console.log('Error uploading coverImage', error);
-    throw new ApiError(487, 'Failed to upload coverImage');
+    throw new ApiError(488, 'Failed to upload coverImage');
   }
 
   try {
@@ -86,6 +105,59 @@ const registerUser = asyncHandler(async (req, res) => {
       'Something went wrong while registering a user and images were deleted'
     );
   }
+});
+
+const loginUser = asyncHandler(async (req, res) => {
+  // get data from body
+  const {email, username, password} = req.body;
+
+  // Required Fields
+  if ([email, username, password].some(field => field?.trim() === '')) {
+    throw new ApiError(491, 'All fields are required to login!');
+  }
+
+  // if user already exist
+  const user = await User.findOne({
+    $or: [{username}, {email}],
+  });
+
+  if (!user) {
+    throw new ApiError(492, 'User not found');
+  }
+
+  // validate Password
+  const isPasswordValid = await user.isPasswordCorrect(password);
+
+  if (!isPasswordValid) {
+    throw new ApiError(493, 'Invalid Credentials');
+  }
+
+  const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id);
+
+  const loggedInUser = await User.findById(user._id).select('-password -refreshToken');
+
+  if (!loggedInUser) {
+    throw new ApiError(493, 'User not logged in');
+  }
+
+  // options of some details to be sent to the user
+  const options = {
+    httpOnly: true, // makes the cookie non modifiable by client side
+    secure: process.env.NODE_ENV === 'production', //secure is true when in production env
+  };
+
+  //return data
+  return res
+    .status(200)
+    .cookie('accessToken', accessToken, options)
+    .cookie('refreshToken', refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {user: loggedInUser, accessToken, refreshToken},
+        'User logged in successfully'
+      )
+    );
 });
 
 export {registerUser};
