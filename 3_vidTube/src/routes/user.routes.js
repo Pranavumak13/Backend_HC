@@ -1,7 +1,8 @@
 import {Router} from 'express';
 
-import {registerUser} from '../controllers/user.controller.js';
+import {logoutUser, registerUser} from '../controllers/user.controller.js';
 import {upload} from '../middlewares/multer.middlewares.js';
+import { verifyJWT } from '../middlewares/auth.middleware.js';
 
 // Strategy --> Each model should have a controller and each controller should have a router
 
@@ -22,5 +23,13 @@ router.route('/register').post(
   ]),
   registerUser
 );
+
+// SECURED ROUTES: the routes in which processing has to happened
+
+router.route('/logout').post(
+  verifyJWT, //middleware
+  logoutUser // we can add as many controllers as we want
+)
+
 
 export default router;
